@@ -121,25 +121,39 @@ export function createApp({ serveStatic = false } = {}) {
 
 export async function runScheduledJobs(now = new Date(), { requireTopOfHour = true } = {}) {
   const profile = await repo.getProfile();
-  if (!profile) return { skipped: true, reason: "No profile." };
+  if (!profile) {
+    console.log("[scheduler skipped] No profile.");
+    return { skipped: true, reason: "No profile." };
+  }
 
   const minute = Number(formatParts(now, profile.timezone).minute);
-  if (requireTopOfHour && minute !== 0) return { skipped: true, reason: "Not the top of the hour." };
+  if (requireTopOfHour && minute !== 0) {
+    console.log(`[scheduler skipped] Not the top of the hour. minute="${minute}"`);
+    return { skipped: true, reason: "Not the top of the hour." };
+  }
 
   const hourly = await sendHourlyReminder(now);
   const summary = await maybeSendDailySummary(now, profile.timezone);
+  console.log("[scheduler result]", JSON.stringify({ hourly, summary }));
   return { hourly, summary };
 }
 
 export async function sendHourlyReminder(now, force = false) {
   const profile = await repo.getProfile();
-  if (!profile?.email && !force) return { skipped: true, reason: "No email on profile." };
+  if (!profile?.email) {
+    console.log("[hourly skipped] No email on profile.");
+    return { skipped: true, reason: "No email on profile." };
+  }
 
   const timezone = profile?.timezone || "Asia/Kolkata";
   const date = formatDate(now, timezone);
   const time = formatTime(now, timezone);
   const key = `hourly:${date}:${time.slice(0, 2)}`;
-  if (!force && (await repo.hasReminderBeenSent(key))) return { skipped: true, reason: "Already sent." };
+  console.log(`[hourly check] key="${key}" to="${profile.email}" force="${force}"`);
+  if (!force && (await repo.hasReminderBeenSent(key))) {
+    console.log(`[hourly skipped] Already sent. key="${key}"`);
+    return { skipped: true, reason: "Already sent.", key };
+  }
 
   const checkInUrl = `${appUrl}/check-in?date=${date}&hour=${time.slice(0, 2)}`;
   await sendMail({
@@ -149,7 +163,7 @@ export async function sendHourlyReminder(now, force = false) {
     html: `<p>What are you doing right now?</p><p><a href="${checkInUrl}">Log this hour</a></p>`,
   });
   await repo.markReminderSent(key);
-  return { sent: true, checkInUrl };
+  return { sent: true, checkInUrl, to: profile.email, key };
 }
 
 async function maybeSendDailySummary(now, timezone) {
