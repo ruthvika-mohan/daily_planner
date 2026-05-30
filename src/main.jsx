@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Bell, Check, Clock, Mail, Plus, Send, Sparkles, Target, Trash2 } from "lucide-react";
 import "./styles.css";
 
-const apiBase = import.meta.env.VITE_API_BASE || "http://127.0.0.1:4000";
+const apiBase = import.meta.env.VITE_API_BASE || "";
 
 function App() {
   const [profile, setProfile] = React.useState(null);
@@ -34,21 +34,29 @@ function App() {
   }, [profile]);
 
   async function saveProfile(nextProfile) {
-    const result = await fetchJson("/api/profile", {
-      method: "POST",
-      body: JSON.stringify(nextProfile),
-    });
-    setProfile(result.profile);
-    setNotice("Profile saved. Hourly check-ins are ready.");
+    try {
+      const result = await fetchJson("/api/profile", {
+        method: "POST",
+        body: JSON.stringify(nextProfile),
+      });
+      setProfile(result.profile);
+      setNotice("Profile saved. Hourly check-ins are ready.");
+    } catch (error) {
+      setNotice(error.message);
+    }
   }
 
   async function saveEntry(entry) {
-    const result = await fetchJson("/api/entries", {
-      method: "POST",
-      body: JSON.stringify(entry),
-    });
-    setEntries((current) => [result.entry, ...current]);
-    setNotice("Logged. Nice and specific.");
+    try {
+      const result = await fetchJson("/api/entries", {
+        method: "POST",
+        body: JSON.stringify(entry),
+      });
+      setEntries((current) => [result.entry, ...current]);
+      setNotice("Logged. Nice and specific.");
+    } catch (error) {
+      setNotice(error.message);
+    }
   }
 
   async function requestNotificationAccess() {
@@ -61,13 +69,21 @@ function App() {
   }
 
   async function sendTestReminder() {
-    const result = await fetchJson("/api/reminders/hourly", { method: "POST" });
-    setNotice(result.checkInUrl ? "Test reminder created. Email sends when SMTP is configured." : "Reminder checked.");
+    try {
+      const result = await fetchJson("/api/reminders/hourly", { method: "POST" });
+      setNotice(result.checkInUrl ? "Test reminder created. Email sends when SMTP is configured." : "Reminder checked.");
+    } catch (error) {
+      setNotice(error.message);
+    }
   }
 
   async function generateSummary() {
-    const result = await fetchJson(`/api/summaries/${today}`, { method: "POST" });
-    setSummary(result.summary);
+    try {
+      const result = await fetchJson(`/api/summaries/${today}`, { method: "POST" });
+      setSummary(result.summary);
+    } catch (error) {
+      setNotice(error.message);
+    }
   }
 
   function showBrowserNotification() {
