@@ -222,6 +222,9 @@ function parseRequestBody(body) {
       return {};
     }
   }
+  if (typeof body === "object" && typeof body.body === "string" && !body.goals && !body.activity) {
+    return parseRequestBody(body.body);
+  }
   return body;
 }
 
