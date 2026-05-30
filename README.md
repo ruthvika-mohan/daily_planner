@@ -32,18 +32,44 @@ npm run build
 NODE_ENV=production npm start
 ```
 
-## Hosted Deployment
+## Hosted Deployment: Free-Friendly Netlify
 
 The app supports hosted PostgreSQL storage with `DATABASE_URL`. If `DATABASE_URL` is present, it stores profile, activity logs, summaries, and sent-reminder markers in Postgres. If it is absent, it uses local `data/planner.json`.
 
-One simple path is Render:
+The lowest-cost setup is:
+
+1. Deploy the app on Netlify Free.
+2. Store data in a free external Postgres database, such as Neon or Supabase.
+3. Let Netlify Scheduled Functions call the reminder job every hour.
+
+Netlify setup:
 
 1. Push this project to GitHub.
-2. Create a new Render Blueprint from the repository, using `render.yaml`.
-3. Set `APP_URL` to the deployed web service URL.
-4. Add the same SMTP variables from your local `.env`.
-5. Add `OPENAI_API_KEY` if you want LLM-based daily coaching.
-6. Deploy.
+2. In Netlify, choose "Add new site" then "Import an existing project".
+3. Select the GitHub repo.
+4. Build command: `npm run build`
+5. Publish directory: `dist`
+6. Functions directory: `netlify/functions`
+7. Add environment variables:
+
+```env
+APP_URL=https://your-netlify-site.netlify.app
+DATABASE_URL=postgres://...
+DATABASE_SSL=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=you@example.com
+SMTP_PASS=app-password
+MAIL_FROM=Daily Planner <you@example.com>
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4.1-mini
+DAILY_SUMMARY_HOUR=21
+```
+
+After the first deploy, update `APP_URL` to the final Netlify URL and redeploy.
+
+Render is still supported, but Render may require a paid always-on service or paid Postgres depending on the selected plan. For a personal planner, Netlify plus external Postgres is usually the better free-tier path.
 
 For other hosts, create a Node web service with:
 
