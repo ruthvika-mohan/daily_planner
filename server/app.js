@@ -1,6 +1,5 @@
 import express from "express";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { PlannerRepository } from "./repository.js";
 import { PostgresPlannerRepository } from "./postgresRepository.js";
 import { generateDailySummary } from "./llm.js";
@@ -103,8 +102,7 @@ export function createApp({ serveStatic = false } = {}) {
   });
 
   if (serveStatic) {
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const distPath = path.join(__dirname, "..", "dist");
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.use((req, res, next) => {
       if (req.method !== "GET" || req.path.startsWith("/api")) return next();
