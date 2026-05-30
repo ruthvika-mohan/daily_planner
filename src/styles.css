@@ -1,0 +1,328 @@
+:root {
+  color: #17211f;
+  background: #f6f2ea;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.topbar h1,
+.panel h2 {
+  margin: 0;
+  line-height: 1.08;
+}
+
+.topbar h1 {
+  font-size: clamp(2rem, 4vw, 4.25rem);
+}
+
+.eyebrow {
+  color: #53645f;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.toolbar,
+.sectionTitle,
+.goalsHeader,
+.inlineFields {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.notice {
+  background: #173f35;
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.setup,
+.dashboard {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.dashboard {
+  grid-template-columns: 1fr 1fr;
+}
+
+.panel {
+  background: #fffdf8;
+  border: 1px solid #ddd5c7;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 14px 35px rgba(33, 45, 40, 0.08);
+}
+
+.introPanel {
+  position: sticky;
+  top: 20px;
+}
+
+.introPanel svg,
+.sectionTitle svg {
+  color: #be4f3b;
+}
+
+.introPanel p,
+.muted,
+.goalCard p {
+  color: #5d6b67;
+}
+
+.formPanel,
+.checkIn {
+  display: grid;
+  gap: 18px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: #33423e;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #cfc6b8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17211f;
+  padding: 11px 12px;
+  outline: none;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #2e6f61;
+  box-shadow: 0 0 0 3px rgba(46, 111, 97, 0.16);
+}
+
+.goalEditor {
+  border-top: 1px solid #e6ded1;
+  padding-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.inlineFields {
+  align-items: end;
+}
+
+.primary,
+.secondary,
+.iconButton {
+  min-height: 42px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.primary {
+  background: #be4f3b;
+  color: #fff;
+  padding: 0 16px;
+}
+
+.secondary,
+.iconButton {
+  background: #fffdf8;
+  color: #173f35;
+  border-color: #cfc6b8;
+  padding: 0 13px;
+}
+
+.iconButton {
+  width: 42px;
+  padding: 0;
+}
+
+.danger {
+  color: #9f3029;
+}
+
+.checkIn {
+  grid-column: span 1;
+}
+
+.goalList,
+.timeline {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.goalCard,
+.entry {
+  border: 1px solid #e5dccf;
+  border-radius: 8px;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.goalCard {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+}
+
+.goalCard strong,
+.entry p {
+  overflow-wrap: anywhere;
+}
+
+.goalCard p,
+.entry p {
+  margin: 4px 0 0;
+}
+
+.goalCard span,
+.entry span {
+  background: #e8f0df;
+  color: #315c35;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.goalCard time,
+.entry time {
+  color: #53645f;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.entry {
+  grid-template-columns: 72px 1fr;
+}
+
+.summaryPanel {
+  display: grid;
+  gap: 14px;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  background: #f4efe5;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+@media (max-width: 860px) {
+  .topbar,
+  .setup,
+  .dashboard,
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .toolbar {
+    justify-content: start;
+  }
+
+  .introPanel {
+    position: static;
+  }
+
+  .goalCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .shell {
+    width: min(100% - 20px, 1180px);
+    padding-top: 16px;
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .inlineFields {
+    display: grid;
+  }
+}
