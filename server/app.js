@@ -36,7 +36,7 @@ export function createApp({ serveStatic = false } = {}) {
 
   app.post("/api/profile", async (req, res, next) => {
     try {
-      const profile = validateProfile(req.body);
+      const profile = validateProfile(parseRequestBody(req.body));
       res.status(201).json({ profile: await repo.saveProfile(profile) });
     } catch (error) {
       next(error);
@@ -53,21 +53,22 @@ export function createApp({ serveStatic = false } = {}) {
 
   app.post("/api/entries", async (req, res, next) => {
     try {
+      const body = parseRequestBody(req.body);
       const profile = await repo.getProfile();
       const timezone = profile?.timezone || "Asia/Kolkata";
       const now = new Date();
-      const date = req.body.date || formatDate(now, timezone);
-      const time = req.body.time || formatTime(now, timezone);
-      if (!req.body.activity?.trim()) {
+      const date = body.date || formatDate(now, timezone);
+      const time = body.time || formatTime(now, timezone);
+      if (!body.activity?.trim()) {
         return res.status(400).json({ error: "Activity is required." });
       }
 
       const entry = await repo.addEntry({
         date,
         time,
-        hour: req.body.hour || time.slice(0, 2),
-        activity: req.body.activity,
-        mood: req.body.mood,
+        hour: body.hour || time.slice(0, 2),
+        activity: body.activity,
+        mood: body.mood,
       });
       res.status(201).json({ entry });
     } catch (error) {
@@ -203,6 +204,25 @@ function validateProfile(body) {
     timezone: body.timezone || "Asia/Kolkata",
     goals: cleanGoals,
   };
+}
+
+function parseRequestBody(body) {
+  if (!body) return {};
+  if (typeof body === "string") {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return {};
+    }
+  }
+  if (Buffer.isBuffer(body)) {
+    try {
+      return JSON.parse(body.toString("utf8"));
+    } catch {
+      return {};
+    }
+  }
+  return body;
 }
 
 function formatDate(date, timezone) {
