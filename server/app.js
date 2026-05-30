@@ -119,12 +119,12 @@ export function createApp({ serveStatic = false } = {}) {
   return app;
 }
 
-export async function runScheduledJobs(now = new Date()) {
+export async function runScheduledJobs(now = new Date(), { requireTopOfHour = true } = {}) {
   const profile = await repo.getProfile();
   if (!profile) return { skipped: true, reason: "No profile." };
 
   const minute = Number(formatParts(now, profile.timezone).minute);
-  if (minute !== 0) return { skipped: true, reason: "Not the top of the hour." };
+  if (requireTopOfHour && minute !== 0) return { skipped: true, reason: "Not the top of the hour." };
 
   const hourly = await sendHourlyReminder(now);
   const summary = await maybeSendDailySummary(now, profile.timezone);

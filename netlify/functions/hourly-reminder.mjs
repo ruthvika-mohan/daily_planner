@@ -3,7 +3,7 @@ import { schedule } from "@netlify/functions";
 import { runScheduledJobs } from "../../server/app.js";
 
 export const handler = schedule("0 * * * *", async () => {
-  const result = await runScheduledJobs();
+  const result = await runScheduledJobs(new Date(), { requireTopOfHour: false });
   return {
     statusCode: 200,
     body: JSON.stringify(result),
