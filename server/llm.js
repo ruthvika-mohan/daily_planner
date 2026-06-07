@@ -59,9 +59,9 @@ function parseReview(raw, fallbackInput) {
     const parsed = JSON.parse(raw);
     if (parsed?.summary && parsed?.insight !== undefined && parsed?.memory !== undefined) {
       return {
-        summary: String(parsed.summary).trim(),
-        insight: String(parsed.insight || "").trim(),
-        memory: String(parsed.memory || "").trim(),
+        summary: formatReviewValue(parsed.summary),
+        insight: formatReviewValue(parsed.insight),
+        memory: formatMemoryValue(parsed.memory),
       };
     }
   } catch {
@@ -69,6 +69,40 @@ function parseReview(raw, fallbackInput) {
   }
   const fallback = fallbackReview(fallbackInput);
   return { ...fallback, summary: raw?.trim() || fallback.summary };
+}
+
+export function formatReviewValue(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value.map(formatReviewValue).filter(Boolean).join("\n");
+  }
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .map(([key, entry]) => {
+        const formatted = formatReviewValue(entry);
+        if (!formatted) return "";
+        return `${formatHeading(key)}: ${formatted}`;
+      })
+      .filter(Boolean)
+      .join("\n\n");
+  }
+  return String(value).trim();
+}
+
+function formatMemoryValue(value) {
+  const formatted = formatReviewValue(value);
+  return formatted.replace(/\n+/g, " ").trim();
+}
+
+function formatHeading(value) {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^./, (char) => char.toUpperCase());
 }
 
 function fallbackReview({ profile, entries, date }) {

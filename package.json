@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "vite build",
+    "test:review": "OPENAI_API_KEY= node scripts/test-review-format.mjs",
     "preview": "vite preview",
     "start": "node server/index.js"
   },
