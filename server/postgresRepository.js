@@ -101,7 +101,11 @@ export class PostgresPlannerRepository {
         VALUES ($1, $2, $3, now())
         ON CONFLICT (email) DO NOTHING
       `,
-      [profile.email.toLowerCase(), { ...profile, email: profile.email.toLowerCase() }, profile.memory || []],
+      [
+        profile.email.toLowerCase(),
+        JSON.stringify({ ...profile, email: profile.email.toLowerCase(), memory: asMemory(profile.memory) }),
+        JSON.stringify(asMemory(profile.memory)),
+      ],
     );
   }
 
@@ -110,7 +114,7 @@ export class PostgresPlannerRepository {
     const normalized = normalizeEmail(email);
     const result = await this.pool.query("SELECT profile, memory FROM planner_profiles_v2 WHERE email = $1", [normalized]);
     const row = result.rows[0];
-    return { registered: Boolean(row), profile: row ? { ...row.profile, memory: row.memory || [] } : null };
+    return { registered: Boolean(row), profile: row ? { ...row.profile, memory: asMemory(row.memory) } : null };
   }
 
   async getProfile(userEmail) {
@@ -118,13 +122,13 @@ export class PostgresPlannerRepository {
     const normalized = normalizeEmail(userEmail);
     const result = await this.pool.query("SELECT profile, memory FROM planner_profiles_v2 WHERE email = $1", [normalized]);
     const row = result.rows[0];
-    return row ? { ...row.profile, memory: row.memory || [] } : null;
+    return row ? { ...row.profile, memory: asMemory(row.memory) } : null;
   }
 
   async getReminderProfiles() {
     await this.ready;
     const result = await this.pool.query("SELECT profile, memory FROM planner_profiles_v2 ORDER BY updated_at DESC");
-    return result.rows.map((row) => ({ ...row.profile, memory: row.memory || [] }));
+    return result.rows.map((row) => ({ ...row.profile, memory: asMemory(row.memory) }));
   }
 
   async saveProfile(profile, userEmail = profile.email) {
@@ -135,7 +139,7 @@ export class PostgresPlannerRepository {
       email,
       timezone: profile.timezone || "Asia/Kolkata",
       goals: profile.goals,
-      memory: profile.memory || [],
+      memory: asMemory(profile.memory),
       updatedAt: new Date().toISOString(),
     };
 
@@ -146,7 +150,7 @@ export class PostgresPlannerRepository {
         ON CONFLICT (email)
         DO UPDATE SET profile = excluded.profile, memory = excluded.memory, updated_at = now()
       `,
-      [email, saved, saved.memory],
+      [email, JSON.stringify(saved), JSON.stringify(saved.memory)],
     );
     return saved;
   }
@@ -275,4 +279,8 @@ export class PostgresPlannerRepository {
 
 function normalizeEmail(email = "") {
   return email.trim().toLowerCase();
+}
+
+function asMemory(memory) {
+  return Array.isArray(memory) ? memory : [];
 }

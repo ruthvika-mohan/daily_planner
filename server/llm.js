@@ -5,23 +5,28 @@ export async function generateDailySummary({ profile, entries, date }) {
     return fallbackSummary({ profile, entries, date });
   }
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-    input: [
-      {
-        role: "system",
-        content:
-          "You are a concise daily planning coach. Return practical, kind advice based only on the provided profile goals and activity log.",
-      },
-      {
-        role: "user",
-        content: JSON.stringify({ profile, entries, date }, null, 2),
-      },
-    ],
-  });
+  try {
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const response = await client.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+      input: [
+        {
+          role: "system",
+          content:
+            "You are a concise daily planning coach. Return practical, kind advice based only on the provided profile goals and activity log.",
+        },
+        {
+          role: "user",
+          content: JSON.stringify({ profile, entries, date }, null, 2),
+        },
+      ],
+    });
 
-  return response.output_text;
+    return response.output_text;
+  } catch (error) {
+    console.error(`[llm fallback] ${error.message}`);
+    return fallbackSummary({ profile, entries, date });
+  }
 }
 
 function fallbackSummary({ profile, entries, date }) {
