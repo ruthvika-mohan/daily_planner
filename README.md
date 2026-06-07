@@ -67,9 +67,18 @@ MAIL_FROM=Daily Planner <you@example.com>
 OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-4.1-mini
 DAILY_SUMMARY_HOUR=21
+CRON_SECRET=change-this-random-string
 ```
 
 After the first deploy, update `APP_URL` to the final Netlify URL and redeploy.
+
+For more precise hourly emails, use a free external scheduler such as cron-job.org:
+
+```text
+https://your-netlify-site.netlify.app/api/cron/hourly?secret=change-this-random-string
+```
+
+Schedule it for `0 * * * *`. Netlify's built-in scheduled function can run late on some invocations; the external scheduler gives you a cleaner top-of-hour trigger. If both run, duplicate protection prevents two emails for the same hour.
 
 Render is still supported, but Render may require a paid always-on service or paid Postgres depending on the selected plan. For a personal planner, Netlify plus external Postgres is usually the better free-tier path.
 

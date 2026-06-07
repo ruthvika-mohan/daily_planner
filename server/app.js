@@ -124,6 +124,18 @@ export function createApp({ serveStatic = false } = {}) {
     }
   });
 
+  app.all("/api/cron/hourly", async (req, res, next) => {
+    try {
+      if (process.env.CRON_SECRET && req.query.secret !== process.env.CRON_SECRET) {
+        return res.status(401).json({ error: "Invalid cron secret." });
+      }
+      const result = await runScheduledJobs(new Date(), { requireTopOfHour: false });
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   if (serveStatic) {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
