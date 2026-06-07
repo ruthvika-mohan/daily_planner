@@ -196,6 +196,13 @@ async function createAndSendSummary(date) {
 }
 
 function validateProfile(body) {
+  const email = body.email?.trim() || "";
+  if (isPlaceholderEmail(email)) {
+    const error = new Error("Use your real email address, not an example.com test address.");
+    error.status = 400;
+    throw error;
+  }
+
   const goals = Array.isArray(body.goals) ? body.goals : [];
   const cleanGoals = goals
     .map((goal) => ({
@@ -214,10 +221,16 @@ function validateProfile(body) {
 
   return {
     name: body.name || "",
-    email: body.email || "",
+    email,
     timezone: body.timezone || "Asia/Kolkata",
     goals: cleanGoals,
   };
+}
+
+function isPlaceholderEmail(email) {
+  if (!email) return false;
+  const domain = email.split("@").at(-1)?.toLowerCase();
+  return ["example.com", "example.org", "example.net"].includes(domain);
 }
 
 function parseRequestBody(body) {
