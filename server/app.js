@@ -7,7 +7,7 @@ import { sendMail } from "./mailer.js";
 
 export const repo = process.env.DATABASE_URL ? new PostgresPlannerRepository() : new PlannerRepository();
 
-const appUrl = process.env.APP_URL || "http://127.0.0.1:5173";
+const appUrl = process.env.APP_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || "http://127.0.0.1:5173";
 const summaryHour = Number(process.env.DAILY_SUMMARY_HOUR || 21);
 
 export function createApp({ serveStatic = false } = {}) {
