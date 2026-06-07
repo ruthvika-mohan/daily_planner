@@ -2,7 +2,7 @@ import express from "express";
 import path from "node:path";
 import { PlannerRepository } from "./repository.js";
 import { PostgresPlannerRepository } from "./postgresRepository.js";
-import { generateDailySummary } from "./llm.js";
+import { generateDailyReview } from "./llm.js";
 import { sendMail } from "./mailer.js";
 
 export const repo = process.env.DATABASE_URL ? new PostgresPlannerRepository() : new PlannerRepository();
@@ -228,9 +228,10 @@ async function maybeSendDailySummary(now, timezone, userEmail) {
 async function createAndSendSummary(date, userEmail) {
   const profile = await repo.getProfile(userEmail);
   const entries = await repo.getEntries({ date, userEmail });
-  const text = await generateDailySummary({ profile, entries, date });
+  const review = await generateDailyReview({ profile, entries, date });
+  const text = review.summary;
   const summary = await repo.saveSummary({ date, text, entryCount: entries.length }, userEmail);
-  const { memory, insight } = deriveMemoryAndInsight({ profile, entries, summary });
+  const { memory, insight } = deriveMemoryAndInsight({ profile, entries, summary, review });
 
   if (memory.length) {
     await repo.saveProfile({ ...profile, memory }, userEmail);
@@ -297,7 +298,7 @@ function isPlaceholderEmail(email) {
   return ["example.com", "example.org", "example.net"].includes(domain);
 }
 
-function deriveMemoryAndInsight({ profile, entries, summary }) {
+function deriveMemoryAndInsight({ profile, entries, summary, review }) {
   const existing = Array.isArray(profile?.memory) ? profile.memory : [];
   const next = [...existing];
   const activities = entries.map((entry) => entry.activity).join(" ").toLowerCase();
@@ -311,11 +312,12 @@ function deriveMemoryAndInsight({ profile, entries, summary }) {
       next.push(`Your activity on ${summary.date} connected to the goal "${goal.title}".`);
     }
   }
+  if (review?.memory) next.push(review.memory);
 
   const uniqueMemory = [...new Set(next)].slice(-12);
-  const insight = entries.length
+  const insight = review?.insight || (entries.length
     ? `On ${summary.date}, ${entries.length} logged check-in${entries.length === 1 ? "" : "s"} shaped the review. ${summary.text.split("\n")[0]}`
-    : `On ${summary.date}, no activities were logged, so the review recommended starting tomorrow with one concrete check-in.`;
+    : `On ${summary.date}, no activities were logged, so the review recommended starting tomorrow with one concrete check-in.`);
 
   return { memory: uniqueMemory, insight };
 }
