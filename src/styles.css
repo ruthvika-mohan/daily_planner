@@ -89,6 +89,57 @@ button {
   margin-bottom: 18px;
 }
 
+.compactNotice {
+  margin-bottom: 0;
+}
+
+.accountLine {
+  margin: 8px 0 0;
+  color: #53645f;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.loginWrap {
+  min-height: calc(100vh - 80px);
+  display: grid;
+  place-items: center;
+}
+
+.loginPanel {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.loginPanel h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.segmented {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #cfc6b8;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 42px;
+}
+
+.segmented button {
+  border: 0;
+  background: #fffdf8;
+  color: #173f35;
+  padding: 0 14px;
+  font-weight: 800;
+}
+
+.segmented button.active {
+  background: #173f35;
+  color: #fff;
+}
+
 .setup,
 .dashboard {
   display: grid;
@@ -99,6 +150,19 @@ button {
 
 .dashboard {
   grid-template-columns: 1fr 1fr;
+}
+
+.profileSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.profileEdit,
+.profileSide {
+  display: grid;
+  gap: 18px;
 }
 
 .panel {
@@ -221,7 +285,9 @@ select:focus {
 }
 
 .goalList,
-.timeline {
+.timeline,
+.memoryList,
+.insightList {
   display: grid;
   gap: 10px;
   margin-top: 14px;
@@ -272,6 +338,25 @@ select:focus {
   grid-template-columns: 72px 1fr;
 }
 
+.memoryList p,
+.insight {
+  border: 1px solid #e5dccf;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 0;
+}
+
+.insight p {
+  margin: 4px 0 0;
+  color: #33423e;
+}
+
+.insight time {
+  color: #53645f;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
 .summaryPanel {
   display: grid;
   gap: 14px;
@@ -291,6 +376,7 @@ pre {
   .topbar,
   .setup,
   .dashboard,
+  .profileSection,
   .fieldGrid {
     grid-template-columns: 1fr;
   }

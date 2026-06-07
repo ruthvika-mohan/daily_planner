@@ -26,9 +26,22 @@ export function createApp({ serveStatic = false } = {}) {
     next();
   });
 
-  app.get("/api/profile", async (_req, res, next) => {
+  app.post("/api/login", async (req, res, next) => {
     try {
-      res.json({ profile: await repo.getProfile() });
+      const body = parseRequestBody(req.body);
+      const email = normalizeEmail(body.email);
+      if (!email || isPlaceholderEmail(email)) {
+        return res.status(400).json({ error: "Enter a real email address." });
+      }
+      res.json(await repo.login(email));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/profile", async (req, res, next) => {
+    try {
+      res.json({ profile: await repo.getProfile(getUserEmail(req)) });
     } catch (error) {
       next(error);
     }
@@ -36,8 +49,8 @@ export function createApp({ serveStatic = false } = {}) {
 
   app.post("/api/profile", async (req, res, next) => {
     try {
-      const profile = validateProfile(parseRequestBody(req.body));
-      res.status(201).json({ profile: await repo.saveProfile(profile) });
+      const profile = validateProfile(parseRequestBody(req.body), getUserEmail(req));
+      res.status(201).json({ profile: await repo.saveProfile(profile, getUserEmail(req)) });
     } catch (error) {
       next(error);
     }
@@ -45,7 +58,7 @@ export function createApp({ serveStatic = false } = {}) {
 
   app.get("/api/entries", async (req, res, next) => {
     try {
-      res.json({ entries: await repo.getEntries({ date: req.query.date }) });
+      res.json({ entries: await repo.getEntries({ date: req.query.date, userEmail: getUserEmail(req) }) });
     } catch (error) {
       next(error);
     }
@@ -54,7 +67,8 @@ export function createApp({ serveStatic = false } = {}) {
   app.post("/api/entries", async (req, res, next) => {
     try {
       const body = parseRequestBody(req.body);
-      const profile = await repo.getProfile();
+      const userEmail = getUserEmail(req);
+      const profile = await repo.getProfile(userEmail);
       const timezone = profile?.timezone || "Asia/Kolkata";
       const now = new Date();
       const date = body.date || formatDate(now, timezone);
@@ -69,7 +83,7 @@ export function createApp({ serveStatic = false } = {}) {
         hour: body.hour || time.slice(0, 2),
         activity: body.activity,
         mood: body.mood,
-      });
+      }, userEmail);
       res.status(201).json({ entry });
     } catch (error) {
       next(error);
@@ -78,7 +92,7 @@ export function createApp({ serveStatic = false } = {}) {
 
   app.post("/api/summaries/:date", async (req, res, next) => {
     try {
-      const summary = await createAndSendSummary(req.params.date);
+      const summary = await createAndSendSummary(req.params.date, getUserEmail(req));
       res.json({ summary });
     } catch (error) {
       next(error);
@@ -87,7 +101,15 @@ export function createApp({ serveStatic = false } = {}) {
 
   app.get("/api/summaries/:date", async (req, res, next) => {
     try {
-      res.json({ summary: await repo.getSummary(req.params.date) });
+      res.json({ summary: await repo.getSummary(req.params.date, getUserEmail(req)) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/insights", async (req, res, next) => {
+    try {
+      res.json({ insights: await repo.getInsights(getUserEmail(req)) });
     } catch (error) {
       next(error);
     }
@@ -95,7 +117,7 @@ export function createApp({ serveStatic = false } = {}) {
 
   app.post("/api/reminders/hourly", async (_req, res, next) => {
     try {
-      const result = await sendHourlyReminder(new Date(), true);
+      const result = await sendHourlyReminder(new Date(), getUserEmail(_req), true);
       res.json(result);
     } catch (error) {
       next(error);
@@ -120,29 +142,42 @@ export function createApp({ serveStatic = false } = {}) {
 }
 
 export async function runScheduledJobs(now = new Date(), { requireTopOfHour = true } = {}) {
-  const profile = await repo.getProfile();
-  if (!profile) {
+  const profiles = await repo.getReminderProfiles();
+  if (!profiles.length) {
     console.log("[scheduler skipped] No profile.");
     return { skipped: true, reason: "No profile." };
   }
 
+  const results = [];
+  for (const profile of profiles) {
+    if (!profile?.email) continue;
+    results.push(await runScheduledJobsForProfile(profile, now, { requireTopOfHour }));
+  }
+  return { profiles: results };
+}
+
+async function runScheduledJobsForProfile(profile, now, { requireTopOfHour }) {
   const minute = Number(formatParts(now, profile.timezone).minute);
   if (requireTopOfHour && minute !== 0) {
     console.log(`[scheduler skipped] Not the top of the hour. minute="${minute}"`);
-    return { skipped: true, reason: "Not the top of the hour." };
+    return { email: profile.email, skipped: true, reason: "Not the top of the hour." };
   }
 
-  const hourly = await sendHourlyReminder(now);
-  const summary = await maybeSendDailySummary(now, profile.timezone);
+  const hourly = await sendHourlyReminder(now, profile.email);
+  const summary = await maybeSendDailySummary(now, profile.timezone, profile.email);
   console.log("[scheduler result]", JSON.stringify({ hourly, summary }));
-  return { hourly, summary };
+  return { email: profile.email, hourly, summary };
 }
 
-export async function sendHourlyReminder(now, force = false) {
-  const profile = await repo.getProfile();
+export async function sendHourlyReminder(now, userEmail, force = false) {
+  const profile = await repo.getProfile(userEmail);
   if (!profile?.email) {
     console.log("[hourly skipped] No email on profile.");
     return { skipped: true, reason: "No email on profile." };
+  }
+  if (isPlaceholderEmail(profile.email)) {
+    console.log(`[hourly skipped] Placeholder email. to="${profile.email}"`);
+    return { skipped: true, reason: "Placeholder email is not eligible for reminders.", to: profile.email };
   }
 
   const timezone = profile?.timezone || "Asia/Kolkata";
@@ -150,7 +185,7 @@ export async function sendHourlyReminder(now, force = false) {
   const time = formatTime(now, timezone);
   const key = `hourly:${date}:${time.slice(0, 2)}`;
   console.log(`[hourly check] key="${key}" to="${profile.email}" force="${force}"`);
-  if (!force && (await repo.hasReminderBeenSent(key))) {
+  if (!force && (await repo.hasReminderBeenSent(key, profile.email))) {
     console.log(`[hourly skipped] Already sent. key="${key}"`);
     return { skipped: true, reason: "Already sent.", key };
   }
@@ -162,26 +197,34 @@ export async function sendHourlyReminder(now, force = false) {
     text: `Log this hour: ${checkInUrl}`,
     html: `<p>What are you doing right now?</p><p><a href="${checkInUrl}">Log this hour</a></p>`,
   });
-  await repo.markReminderSent(key);
+  await repo.markReminderSent(key, profile.email);
   return { sent: true, checkInUrl, to: profile.email, key };
 }
 
-async function maybeSendDailySummary(now, timezone) {
+async function maybeSendDailySummary(now, timezone, userEmail) {
   const hour = Number(formatParts(now, timezone).hour);
   if (hour !== summaryHour) return { skipped: true, reason: "Not summary hour." };
   const date = formatDate(now, timezone);
   const key = `summary:${date}`;
-  if (await repo.hasReminderBeenSent(key)) return { skipped: true, reason: "Summary already sent." };
-  const summary = await createAndSendSummary(date);
-  await repo.markReminderSent(key);
+  if (await repo.hasReminderBeenSent(key, userEmail)) return { skipped: true, reason: "Summary already sent." };
+  const summary = await createAndSendSummary(date, userEmail);
+  await repo.markReminderSent(key, userEmail);
   return { sent: true, summary };
 }
 
-async function createAndSendSummary(date) {
-  const profile = await repo.getProfile();
-  const entries = await repo.getEntries({ date });
+async function createAndSendSummary(date, userEmail) {
+  const profile = await repo.getProfile(userEmail);
+  const entries = await repo.getEntries({ date, userEmail });
   const text = await generateDailySummary({ profile, entries, date });
-  const summary = await repo.saveSummary({ date, text, entryCount: entries.length });
+  const summary = await repo.saveSummary({ date, text, entryCount: entries.length }, userEmail);
+  const { memory, insight } = deriveMemoryAndInsight({ profile, entries, summary });
+
+  if (memory.length) {
+    await repo.saveProfile({ ...profile, memory }, userEmail);
+  }
+  if (insight) {
+    await repo.addInsight({ date, insight }, userEmail);
+  }
 
   if (profile?.email) {
     await sendMail({
@@ -195,8 +238,8 @@ async function createAndSendSummary(date) {
   return summary;
 }
 
-function validateProfile(body) {
-  const email = body.email?.trim() || "";
+function validateProfile(body, userEmail = "") {
+  const email = normalizeEmail(body.email || userEmail);
   if (isPlaceholderEmail(email)) {
     const error = new Error("Use your real email address, not an example.com test address.");
     error.status = 400;
@@ -227,10 +270,41 @@ function validateProfile(body) {
   };
 }
 
+function getUserEmail(req) {
+  return normalizeEmail(req.headers["x-planner-user"] || req.query.user || "");
+}
+
+function normalizeEmail(email = "") {
+  return String(email).trim().toLowerCase();
+}
+
 function isPlaceholderEmail(email) {
   if (!email) return false;
   const domain = email.split("@").at(-1)?.toLowerCase();
   return ["example.com", "example.org", "example.net"].includes(domain);
+}
+
+function deriveMemoryAndInsight({ profile, entries, summary }) {
+  const existing = Array.isArray(profile?.memory) ? profile.memory : [];
+  const next = [...existing];
+  const activities = entries.map((entry) => entry.activity).join(" ").toLowerCase();
+  const moods = entries.map((entry) => entry.mood).filter(Boolean);
+
+  if (entries.length >= 4) next.push(`You tend to respond well to frequent check-ins; ${entries.length} were logged on ${summary.date}.`);
+  if (moods.length) next.push(`Recent energy words you used: ${[...new Set(moods)].slice(0, 4).join(", ")}.`);
+  for (const goal of profile?.goals || []) {
+    const firstWord = goal.title.toLowerCase().split(/\s+/)[0];
+    if (firstWord && activities.includes(firstWord)) {
+      next.push(`Your activity on ${summary.date} connected to the goal "${goal.title}".`);
+    }
+  }
+
+  const uniqueMemory = [...new Set(next)].slice(-12);
+  const insight = entries.length
+    ? `On ${summary.date}, ${entries.length} logged check-in${entries.length === 1 ? "" : "s"} shaped the review. ${summary.text.split("\n")[0]}`
+    : `On ${summary.date}, no activities were logged, so the review recommended starting tomorrow with one concrete check-in.`;
+
+  return { memory: uniqueMemory, insight };
 }
 
 function parseRequestBody(body) {

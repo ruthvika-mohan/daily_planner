@@ -13,7 +13,9 @@ Open `http://127.0.0.1:5173`.
 
 ## What It Does
 
+- Login starts with your reminder email. New emails go through profile setup; returning emails load their existing goals and data.
 - Profile setup comes first: goals, achievement criteria, target dates, and priorities.
+- The Profile tab lets you edit profile details, add or remove goals, inspect AI memory, and review insights from past daily reviews.
 - Hourly check-ins can arrive through browser notifications when the app is open.
 - Email reminders are sent hourly when SMTP is configured in `.env`.
 - Reminder links open `/check-in` in the React app.
