@@ -26,6 +26,24 @@ function App() {
   }, [userEmail, today]);
 
   React.useEffect(() => {
+    if (!userEmail || !profile) return undefined;
+    const refreshEntries = () => {
+      fetchJson(`/api/entries?date=${today}`, {}, userEmail)
+        .then((result) => setEntries(result.entries))
+        .catch((error) => setNotice(error.message));
+    };
+    const interval = setInterval(refreshEntries, 30_000);
+    const onFocus = () => refreshEntries();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [userEmail, profile, today]);
+
+  React.useEffect(() => {
     if (!profile) return undefined;
     const timer = setInterval(() => {
       const now = new Date();

@@ -67,22 +67,23 @@ export function createApp({ serveStatic = false } = {}) {
   app.post("/api/entries", async (req, res, next) => {
     try {
       const body = parseRequestBody(req.body);
+      const entryBody = normalizeEntryBody(body);
       const userEmail = getUserEmail(req);
       const profile = await repo.getProfile(userEmail);
       const timezone = profile?.timezone || "Asia/Kolkata";
       const now = new Date();
-      const date = body.date || formatDate(now, timezone);
-      const time = body.time || formatTime(now, timezone);
-      if (!body.activity?.trim()) {
+      const date = entryBody.date || formatDate(now, timezone);
+      const time = entryBody.time || formatTime(now, timezone);
+      if (!entryBody.activity?.trim()) {
         return res.status(400).json({ error: "Activity is required." });
       }
 
       const entry = await repo.addEntry({
         date,
         time,
-        hour: body.hour || time.slice(0, 2),
-        activity: body.activity,
-        mood: body.mood,
+        hour: entryBody.hour || time.slice(0, 2),
+        activity: entryBody.activity,
+        mood: entryBody.mood,
       }, userEmail);
       res.status(201).json({ entry });
     } catch (error) {
@@ -349,6 +350,16 @@ function parseRequestBody(body) {
     return parseRequestBody(body.body);
   }
   return body;
+}
+
+function normalizeEntryBody(body) {
+  return {
+    date: body.date || body.Date,
+    time: body.time || body.Time,
+    hour: body.hour || body.Hour,
+    activity: body.activity || body.Activity || body.text || body.Text || body.dictation || body["Dictated Text"] || "",
+    mood: body.mood || body.Mood || body.energy || body.Energy || "",
+  };
 }
 
 function formatDate(date, timezone) {
