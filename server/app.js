@@ -7,7 +7,7 @@ import { sendMail } from "./mailer.js";
 
 export const repo = process.env.DATABASE_URL ? new PostgresPlannerRepository() : new PlannerRepository();
 
-const appUrl = process.env.APP_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || "http://127.0.0.1:5173";
+const fallbackHostedUrl = "https://storied-crostata-07e788.netlify.app";
 const summaryHour = Number(process.env.DAILY_SUMMARY_HOUR || 21);
 
 export function createApp({ serveStatic = false } = {}) {
@@ -202,7 +202,7 @@ export async function sendHourlyReminder(now, userEmail, force = false) {
     return { skipped: true, reason: "Already sent.", key };
   }
 
-  const checkInUrl = `${appUrl}/check-in?date=${date}&hour=${time.slice(0, 2)}`;
+  const checkInUrl = `${getAppUrl()}/check-in?date=${date}&hour=${time.slice(0, 2)}`;
   await sendMail({
     to: profile.email,
     subject: "What are you doing right now?",
@@ -317,6 +317,16 @@ function deriveMemoryAndInsight({ profile, entries, summary }) {
     : `On ${summary.date}, no activities were logged, so the review recommended starting tomorrow with one concrete check-in.`;
 
   return { memory: uniqueMemory, insight };
+}
+
+function getAppUrl() {
+  const candidates = [process.env.APP_URL, process.env.URL, process.env.DEPLOY_PRIME_URL, fallbackHostedUrl];
+  const usable = candidates.find((url) => url && !(process.env.NETLIFY && isLocalUrl(url)));
+  return (usable || "http://127.0.0.1:5173").replace(/\/$/, "");
+}
+
+function isLocalUrl(url) {
+  return /\/\/(127\.0\.0\.1|localhost)(:\d+)?/i.test(url);
 }
 
 function parseRequestBody(body) {
